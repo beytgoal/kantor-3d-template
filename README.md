@@ -8,7 +8,12 @@ mode POV, dan musik latar. Dibangun dengan Three.js.
 perusahaan: nama, divisi, warna divisi, dan agen. Tampilannya tetap
 sama persis seperti demo.
 
-## Cara pakai (2 menit)
+## Install sekali perintah
+
+Lihat **[INSTALL.md](INSTALL.md)** — satu prompt copy-paste untuk Muse,
+atau `python3 install.py` untuk install interaktif.
+
+## Cara pakai (manual, 2 menit)
 
 1. Buka `index.html` dengan text editor.
 2. Cari blok `★ KANTOR 3D — CONFIG ★` di bagian atas `<script>`.
