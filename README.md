@@ -123,6 +123,7 @@ berubah. Tidak ada nilai visual yang terkunci di kode.
 | `index.html` | Satu file mandiri: desain 3D + blok CONFIG di bagian atas |
 | `install.py` | Installer interaktif (jumlah divisi, agen per divisi, industri, workflow, tema visual) |
 | `PANDUAN.md` | Panduan pengguna pasca-instalasi (inisiasi oleh Muse, atur pipeline, workflow, wajah agen) |
+| `LICENSE`    | Lisensi MIT — bebas dipakai, diubah, dan dibagikan      |
 | `README.md`  | File ini                                                |
 
 ## Catatan
@@ -138,5 +139,6 @@ berubah. Tidak ada nilai visual yang terkunci di kode.
 
 ## Lisensi
 
-Bebas dipakai dan dimodifikasi untuk keperluan pribadi maupun komersial.
-Atribusi dihargai tapi tidak diwajibkan.
+Proyek ini berlisensi **MIT** — lihat [LICENSE](LICENSE).
+Bebas dipakai, diubah, dan dibagikan, termasuk untuk keperluan
+komersial, selama pemberitahuan hak cipta dan lisensi tetap disertakan.
