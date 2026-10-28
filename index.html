@@ -255,6 +255,18 @@ const CONFIG = {
   //      ui: { amber: "#ff8c42" },
   visual: {
     theme: "malam"
+  },
+  // ── Musik latar (no-copyright) ──
+  //    Trek bawaan: "Chill Lofi" oleh ZephiraMusic, lisensi Pixabay
+  //    (gratis, boleh dipakai komersial, tanpa atribusi wajib).
+  //    Ganti `src` dengan URL MP3 no-copyright lain, atau kosongkan
+  //    ("") untuk memakai synth lo-fi generatif bawaan — tanpa file
+  //    eksternal, tetap jalan offline. Bila trek gagal dimuat
+  //    (mis. offline), synth dipakai otomatis sebagai fallback.
+  music: {
+    src: "https://cdn.pixabay.com/download/audio/2026/08/14/audio_a5f2abd4d3.mp3?filename=zephiramusic-chill-lofi-585360.mp3",
+    title: "Chill Lofi — ZephiraMusic (Pixabay)",
+    credit: "Musik: 'Chill Lofi' oleh ZephiraMusic, lisensi Pixabay"
   }
 };
 // --- derived & normalisasi (jangan diubah kecuali paham) ---
@@ -1084,7 +1096,7 @@ document.getElementById("stage").setAttribute("aria-label", "Kantor virtual 3D "
       eqBars.push(bar);
     }
     clickable(boombox, { title: 'Boombox Lounge', sub: 'Musik kantor',
-      body: 'Klik boombox ini (atau tombol Musik kantor) untuk menyalakan dan mematikan musik lo-fi yang dibangkitkan langsung di halaman ini.' });
+      body: 'Klik boombox ini (atau tombol Musik kantor) untuk menyalakan dan mematikan musik latar. Trek bawaan: ' + (CONFIG.music && CONFIG.music.title ? CONFIG.music.title : 'synth lo-fi generatif') + '. Bila trek tidak bisa dimuat (mis. offline), dipakai synth lo-fi generatif bawaan.' });
     // not musik 3D melayang saat musik menyala
     notes = [];
     for (var ni = 0; ni < 7; ni++) {
@@ -1729,12 +1741,14 @@ document.getElementById("stage").setAttribute("aria-label", "Kantor virtual 3D "
     showCard(info);
   });
 
-  /* ── Musik kantor: lo-fi generatif via WebAudio ────────────────── */
+  /* ── Musik kantor: trek no-copyright (CONFIG.music) + synth lo-fi
+     generatif via WebAudio sebagai fallback ────────────────────── */
   var musicBtn = document.getElementById('musicBtn');
   var musicLabel = document.getElementById('musicLabel');
   var AC = window.AudioContext || window.webkitAudioContext;
   var Music = {
     ctx: null, master: null, timer: null, nextTime: 0, chordIdx: 0, playing: false,
+    audio: null, audioMode: false, audioFailed: false,
     chords: [
       { bass: 38, pad: [53, 57, 60, 64] },  // Dm9
       { bass: 34, pad: [50, 53, 57, 60] },  // Bbmaj7
@@ -1820,36 +1834,104 @@ document.getElementById("stage").setAttribute("aria-label", "Kantor virtual 3D "
         this.chordIdx++;
       }
     },
-    toggle: function () {
-      if (!AC) return;
-      if (!this.ctx) { try { this.init(); } catch (e) { return; } }
-      var ctx = this.ctx;
-      if (!this.playing) {
-        ctx.resume();
+    shortTitle: function () {
+      var t = (CONFIG.music && CONFIG.music.title) || 'Musik kantor';
+      return t.split(' — ')[0].split(' - ')[0];
+    },
+    // Trek audio (CONFIG.music.src): putar elemen <audio> (loop).
+    // Gagal dimuat / autoplay ditolak → fallback ke synth.
+    startAudio: function () {
+      var self = this;
+      if (!this.audio) {
+        var a = new Audio();
+        a.loop = true;
+        a.preload = 'auto';
+        a.volume = 0.55;
+        a.src = CONFIG.music.src;
+        a.addEventListener('error', function () {
+          if (self.audioFailed) return;
+          if (!self.playing && !self._audioStarting) return; // sudah dimatikan
+          self.audioFailed = true;
+          self.audioMode = false;
+          self.startSynth();
+        });
+        this.audio = a;
+      }
+      this._audioStarting = true;
+      var p = null;
+      try { p = this.audio.play(); } catch (e) { p = null; }
+      if (p && p.catch) {
+        p.then(function () {
+          self._audioStarting = false;
+          if (self.audio.paused) return; // sudah dimatikan selagi menunggu
+          self.playing = true;
+          self.audioMode = true;
+          musicBtn.classList.add('on');
+          musicBtn.setAttribute('aria-pressed', 'true');
+          musicLabel.textContent = '♪ ' + self.shortTitle();
+          musicBtn.title = (CONFIG.music && CONFIG.music.credit) || '';
+        }).catch(function () {
+          self._audioStarting = false;
+          self.audioFailed = true;
+          self.startSynth();
+        });
+      } else {
+        // browser lama tanpa promise — anggap jalan
+        this._audioStarting = false;
         this.playing = true;
-        this.nextTime = ctx.currentTime + 0.1;
-        this.chordIdx = 0;
-        this.master.gain.cancelScheduledValues(ctx.currentTime);
-        this.master.gain.setValueAtTime(this.master.gain.value, ctx.currentTime);
-        this.master.gain.linearRampToValueAtTime(0.85, ctx.currentTime + 0.6);
-        var self = this;
-        this.timer = setInterval(function () { self.schedule(); }, 160);
+        this.audioMode = true;
         musicBtn.classList.add('on');
         musicBtn.setAttribute('aria-pressed', 'true');
-        musicLabel.textContent = 'Musik menyala';
-      } else {
-        this.playing = false;
-        clearInterval(this.timer);
-        this.master.gain.cancelScheduledValues(ctx.currentTime);
-        this.master.gain.setValueAtTime(this.master.gain.value, ctx.currentTime);
-        this.master.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.35);
-        setTimeout(function () { if (!Music.playing && Music.ctx) Music.ctx.suspend(); }, 450);
-        musicBtn.classList.remove('on');
-        musicBtn.setAttribute('aria-pressed', 'false');
-        musicLabel.textContent = 'Musik kantor';
+        musicLabel.textContent = '♪ ' + this.shortTitle();
       }
+    },
+    // Synth lo-fi generatif (tanpa file eksternal — jalan offline).
+    startSynth: function () {
+      if (!AC) return;
+      if (this.timer) clearInterval(this.timer);
+      if (!this.ctx) { try { this.init(); } catch (e) { return; } }
+      var ctx = this.ctx;
+      ctx.resume();
+      this.playing = true;
+      this.audioMode = false;
+      this.nextTime = ctx.currentTime + 0.1;
+      this.chordIdx = 0;
+      this.master.gain.cancelScheduledValues(ctx.currentTime);
+      this.master.gain.setValueAtTime(this.master.gain.value, ctx.currentTime);
+      this.master.gain.linearRampToValueAtTime(0.85, ctx.currentTime + 0.6);
+      var self = this;
+      this.timer = setInterval(function () { self.schedule(); }, 160);
+      musicBtn.classList.add('on');
+      musicBtn.setAttribute('aria-pressed', 'true');
+      musicLabel.textContent = '♪ Synth lo-fi';
+    },
+    stopSynth: function () {
+      if (!this.ctx) return;
+      var ctx = this.ctx;
+      clearInterval(this.timer);
+      this.master.gain.cancelScheduledValues(ctx.currentTime);
+      this.master.gain.setValueAtTime(this.master.gain.value, ctx.currentTime);
+      this.master.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.35);
+      setTimeout(function () { if (!Music.playing && Music.ctx) Music.ctx.suspend(); }, 450);
+    },
+    stop: function () {
+      this.playing = false;
+      this.audioMode = false;
+      this._audioStarting = false;
+      if (this.audio) { try { this.audio.pause(); } catch (e) {} }
+      this.stopSynth();
+      musicBtn.classList.remove('on');
+      musicBtn.setAttribute('aria-pressed', 'false');
+      musicLabel.textContent = 'Musik kantor';
+    },
+    toggle: function () {
+      if (this.playing) { this.stop(); return; }
+      var src = CONFIG.music && CONFIG.music.src;
+      if (src && !this.audioFailed) { this.startAudio(); return; }
+      this.startSynth();
     }
   };
+  if (CONFIG.music && CONFIG.music.credit) musicBtn.title = CONFIG.music.credit;
   function toggleMusic() { Music.toggle(); }
   musicBtn.addEventListener('click', toggleMusic);
   boombox.userData.isBoombox = true;

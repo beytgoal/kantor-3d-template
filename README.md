@@ -43,6 +43,8 @@ atau `python3 install.py` untuk install interaktif.
      (`"server"`/`"books"`/`"studio"`/`"none"`), `workflow` (langkah
      kerja divisi)
    - `pipeline.source`: index divisi sumber data (default 0)
+   - `music`: `src` (URL MP3 no-copyright), `title`, `credit` — kosongkan
+     `src` untuk memakai synth lo-fi generatif bawaan
    - `agents[]`: `name`, `role`, plus opsional `id`, `division`
      (index atau nama pendek divisi tempat ia duduk), `desk`
      (nomor kursi), `color`/`colorCss`, `face` (foto, opsional — tanpa
@@ -121,13 +123,20 @@ berubah. Tidak ada nilai visual yang terkunci di kode.
 | File         | Keterangan                                              |
 |--------------|---------------------------------------------------------|
 | `index.html` | Satu file mandiri: desain 3D + blok CONFIG di bagian atas |
-| `install.py` | Installer interaktif (jumlah divisi, agen per divisi, industri, workflow, tema visual) |
+| `install.py` | Installer interaktif (jumlah divisi, agen per divisi, industri, workflow, tema visual, musik latar) |
 | `PANDUAN.md` | Panduan pengguna pasca-instalasi (inisiasi oleh Muse, atur pipeline, workflow, wajah agen) |
 | `LICENSE`    | Lisensi MIT — bebas dipakai, diubah, dan dibagikan      |
 | `README.md`  | File ini                                                |
 
 ## Catatan
 
+- Musik latar: trek no-copyright **"Chill Lofi" oleh ZephiraMusic**
+  (lisensi Pixabay — gratis, boleh dipakai komersial, tanpa atribusi
+  wajib), diputar dari `CONFIG.music.src` saat tombol Musik kantor /
+  boombox diklik. Ganti `src` dengan URL MP3 no-copyright lain, atau
+  kosongkan untuk memakai synth lo-fi generatif bawaan (tanpa file
+  eksternal, tetap jalan offline; dipakai otomatis bila trek gagal
+  dimuat).
 - Jumlah bawaan: 3 divisi, 6 agen, 2 lantai — semuanya bisa diubah
   lewat CONFIG tanpa menyentuh kode lain.
 - Warna divisi: `color` (hex number, mis. `0xf7b955`) untuk objek 3D,

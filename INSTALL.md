@@ -39,7 +39,7 @@ bagian 2, lalu inisiasi setup oleh Muse.
 
 Atau via script: `python3 install.py` (interaktif — tanya dulu berapa
 divisi, lalu per divisi: industri, fitur ruangan, workflow, dan jumlah
-agennya; lalu tema visual) atau dengan env var, contoh:
+agennya; lalu tema visual dan musik latar) atau dengan env var, contoh:
 `COMPANY="Nusantara" DIV_COUNT=4 FLOORS=3 THEME="siang" python3 install.py`
 (env per divisi: `DIV1_INDUSTRY`, `DIV1_AGENTS`, `DIV1_FEATURE`,
 `DIV1_WORKFLOW`, `DIV1="Data"`; per agen: `AGENT1="Budi" AGENT1_ROLE="CEO"`).

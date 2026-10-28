@@ -22,6 +22,7 @@ Non-interaktif via env:
   COMPANY="Nusantara" DIV_COUNT=4 FLOORS=3 THEME="siang" python3 install.py
   DIV1="Data" DIV1_INDUSTRY="Teknologi" DIV1_AGENTS=3 DIV1_FEATURE="server"
   DIV1_WORKFLOW="Kumpulkan data,Olah data,Laporan" AGENT1="Budi" AGENT1_ROLE="CEO" ...
+  MUSIC_URL=""  (kosong = synth lo-fi generatif bawaan, tanpa file eksternal)
 """
 import os
 import re
@@ -40,6 +41,11 @@ PALETTE = [
 FEATURES = ("server", "books", "studio", "none")
 # Fitur bawaan menurut index divisi (dipakai bila tidak dijawab)
 FEATURE_DEFAULTS = ["server", "studio", "books"]
+
+# Trek musik latar bawaan (no-copyright, lisensi Pixabay).
+DEFAULT_MUSIC_URL = "https://cdn.pixabay.com/download/audio/2026/08/14/audio_a5f2abd4d3.mp3?filename=zephiramusic-chill-lofi-585360.mp3"
+DEFAULT_MUSIC_TITLE = "Chill Lofi — ZephiraMusic (Pixabay)"
+DEFAULT_MUSIC_CREDIT = "Musik: 'Chill Lofi' oleh ZephiraMusic, lisensi Pixabay"
 
 # Default 3 divisi contoh generik (dipakai bila jumlah divisi <= 3).
 # BUKAN data perusahaan nyata — ganti dengan divisimu sendiri.
@@ -138,6 +144,16 @@ def main():
     if theme not in ("malam", "siang", "senja"):
         print(f"  tema {theme!r} tidak dikenal — memakai 'malam'.")
         theme = "malam"
+
+    # ---- musik latar (no-copyright) ----
+    print("\nMusik latar (no-copyright; kosong = synth lo-fi generatif bawaan):")
+    if "MUSIC_URL" in os.environ:
+        music_src = os.environ["MUSIC_URL"].strip()
+        print(f"  URL MP3 musik latar [{DEFAULT_MUSIC_URL}]: {music_src or '(kosong — synth)'} (env)")
+    else:
+        music_src = ask("URL MP3 musik latar", DEFAULT_MUSIC_URL).strip()
+    music_title = ask("judul trek", DEFAULT_MUSIC_TITLE if music_src else "Synth lo-fi", "MUSIC_TITLE").strip()
+    music_credit = ask("kredit trek", DEFAULT_MUSIC_CREDIT if music_src else "", "MUSIC_CREDIT").strip()
 
     # ---- divisi ----
     print(f"\nDivisi ({div_count}):" if div_count else "\nDivisi: belum ada — file dibuat dengan lounge saja; divisi bisa ditambah nanti (lihat PANDUAN.md).")
@@ -289,7 +305,13 @@ def main():
     lines.append("  // Tampilan visual: tema bawaan (\"malam\", \"siang\", \"senja\").")
     lines.append("  // Field lain di `visual` bisa ditambahkan untuk menimpa tema")
     lines.append("  // (sky, camera, palette, lights, ui) — lihat README.")
-    lines.append(f'  visual: {{ theme: {js_str(theme)} }}')
+    lines.append(f'  visual: {{ theme: {js_str(theme)} }},')
+    lines.append("  // Musik latar no-copyright (kosong = synth lo-fi generatif bawaan).")
+    lines.append("  music: {")
+    lines.append(f'    src: {js_str(music_src)},')
+    lines.append(f'    title: {js_str(music_title)},')
+    lines.append(f'    credit: {js_str(music_credit)}')
+    lines.append("  }")
     lines.append("};")
     new_cfg = "\n".join(lines)
 

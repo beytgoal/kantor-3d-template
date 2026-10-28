@@ -156,7 +156,27 @@ Field lain di `visual` menimpa tema — langit (`sky`), kamera
 panel UI (`ui`). Detail lengkap: README bagian
 "Mengubah tampilan visual".
 
-## 8. Membuka & membagikan kantor
+## 8. Mengubah musik latar
+
+Musik bawaan: **"Chill Lofi" oleh ZephiraMusic** (lisensi Pixabay —
+gratis, boleh dipakai komersial, tanpa atribusi wajib). Diatur di
+`CONFIG.music`:
+
+```js
+music: {
+  src: "https://cdn.pixabay.com/.../audio_a5f2abd4d3.mp3?...",
+  title: "Chill Lofi — ZephiraMusic (Pixabay)",
+  credit: "Musik: 'Chill Lofi' oleh ZephiraMusic, lisensi Pixabay"
+}
+```
+
+Ganti `src` dengan URL MP3 no-copyright lain (Pixabay, Kevin MacLeod,
+dan sejenisnya — perhatikan syarat atribusi masing-masing, dan isi
+`credit` sesuai lisensinya), atau kosongkan `src` (`""`) untuk memakai
+synth lo-fi generatif bawaan. Bila trek tidak bisa dimuat (mis.
+offline), synth dipakai otomatis sebagai fallback.
+
+## 9. Membuka & membagikan kantor
 
 - Buka file HTML di browser modern (Chrome/Firefox/Safari/Edge).
   Tidak perlu server — tapi butuh internet saat pertama dibuka
