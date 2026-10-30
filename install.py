@@ -22,6 +22,7 @@ Non-interaktif via env:
   COMPANY="Nusantara" DIV_COUNT=4 FLOORS=3 THEME="siang" python3 install.py
   DIV1="Data" DIV1_INDUSTRY="Teknologi" DIV1_AGENTS=3 DIV1_FEATURE="server"
   DIV1_WORKFLOW="Kumpulkan data,Olah data,Laporan" AGENT1="Budi" AGENT1_ROLE="CEO" ...
+  RESERVES=2  (jumlah agen cadangan standby; 0 = tanpa cadangan)
   MUSIC_URL=""  (kosong = synth lo-fi generatif bawaan, tanpa file eksternal)
 """
 import os
@@ -69,7 +70,7 @@ DIV_DEFAULTS = [
      "industry": "Pemasaran Digital", "feature": "studio",
      "workflow": ["Susun konsep kampanye", "Garap materi promosi", "Jadwalkan tayang"]},
     {"short": "Keuangan", "full": "Divisi Keuangan",
-     "room": "Ruang Keuangan", "floor": 2,
+     "room": "Ruang Keuangan", "floor": 3,
      "color": "0x7bd88f", "css": "#7bd88f", "cssDark": "#6b7a52",
      "url": "keuangan.contoh.id", "screen": "Keuangan",
      "board": "Papan Keuangan",
@@ -131,7 +132,8 @@ def main():
     # ---- jumlah (tanya dulu; divisi boleh 0 bila belum punya) ----
     print("Jumlah (bebas — tanpa edit kode):")
     div_count = ask_int("berapa divisi (0 bila belum punya)", 3, "DIV_COUNT", minimum=0)
-    floors = ask_int("berapa lantai", 2, "FLOORS")
+    floors = ask_int("berapa lantai", 3, "FLOORS")
+    reserves = ask_int("berapa agen cadangan (standby, 0 = tanpa)", 2, "RESERVES", minimum=0)
 
     # ---- perusahaan ----
     print("\nPerusahaan:")
@@ -257,6 +259,10 @@ def main():
     lines.append("  // Jumlah lantai gedung. Pelat lantai, tangga, dan tombol lompat lantai")
     lines.append("  // dibangun otomatis mengikuti angka ini (minimal 1).")
     lines.append(f"  floors: {floors},")
+    lines.append("  // Jumlah agent CADANGAN: agent standby fleksibel yang menunggu di")
+    lines.append("  // area bersama (lounge lantai 1) lalu berpindah membantu divisi yang")
+    lines.append("  // sibuk dan duduk di meja cadangan divisi itu. 0 = tanpa cadangan.")
+    lines.append(f"  reserves: {reserves},")
     lines.append("  // ── Pipeline divisi ──")
     lines.append("  //    Urutan divisi di bawah = urutan ruangan kiri → kanan di tiap lantai.")
     lines.append("  //    `feature`: \"server\" / \"books\" / \"studio\" / \"none\".")
@@ -323,7 +329,7 @@ def main():
     out = os.path.join(HERE, f"kantor-3d-{slug_name}.html")
     open(out, "w", encoding="utf-8").write(html)
     print(f"\nSelesai! File: {out}")
-    print(f"({div_count} divisi, {len(agents)} agen, {floors} lantai, tema {theme})")
+    print(f"({div_count} divisi, {len(agents)} agen, {reserves} agen cadangan, {floors} lantai, tema {theme})")
     print("Buka di browser — kantor 3D siap dipakai.")
     print("\n" + "=" * 64)
     print("Langkah berikut — inisiasi oleh Muse:")
@@ -331,7 +337,7 @@ def main():
     print(f'  "Aku baru install Kantor 3D dari')
     print(f'  https://github.com/beytgoal/kantor-3d-template')
     print(f'  (file: {os.path.basename(out)} — {div_count} divisi, {len(agents)} agen,')
-    print(f'  {floors} lantai, tema {theme}). Tolong inisiasi setup kantor 3D-ku:')
+    print(f'  {reserves} agen cadangan, {floors} lantai, tema {theme}). Tolong inisiasi setup kantor 3D-ku:')
     print(f'  tanyakan nama perusahaanku, industri tiap divisi, jumlah agen')
     print(f'  per divisi, workflow tiap divisi, siapa agen utamanya, dan tema')
     print(f'  visual yang kumau — lalu ubah blok CONFIG di file itu (tanpa')

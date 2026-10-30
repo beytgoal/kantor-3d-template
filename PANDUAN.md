@@ -17,7 +17,7 @@ di tangan), langkah tercepat adalah minta Muse menginisiasi setup.
 Copy-paste prompt ini ke Muse kamu:
 
 > "Aku baru install Kantor 3D dari https://github.com/beytgoal/kantor-3d-template
-> (file: kantor-3d-contoh.html — 3 divisi, 6 agen, 2 lantai, tema malam).
+> (file: kantor-3d-contoh.html — 3 divisi, 6 agen, 2 agen cadangan, 3 lantai, tema malam).
 > Tolong inisiasi setup kantor 3D-ku: tanyakan nama perusahaanku, industri
 > tiap divisi, jumlah agen per divisi, workflow tiap divisi, siapa agen
 > utamanya, dan tema visual yang kumau — lalu ubah blok CONFIG di file itu
@@ -130,6 +130,25 @@ untuk kursi kosong berikutnya.
   otomatis jadi kurir yang mengantar data ke divisi lain.
 - Bila `division` dikosongkan, agen dibagi rata ke semua divisi.
 
+## 5b. Agen cadangan, pose duduk, dan kerja paralel
+
+- **Agen cadangan** (`CONFIG.reserves`, bawaan 2; `0` = tanpa) —
+  agen standby fleksibel yang duduk di **Area Standby** (lounge
+  lantai 1). Mereka otomatis berjalan membantu divisi secara
+  bergiliran: datang ke ruangan divisi, **duduk di meja cadangan**
+  (satu meja ekstra yang selalu disediakan di tiap ruangan divisi di
+  luar jumlah agen tetap), bekerja di sana beberapa saat, lalu
+  kembali standby atau berpindah ke divisi lain.
+- **Pose duduk** — semua agen duduk di kursi meja kerja dengan kaki
+  dua segmen berengsel lutut (paha horizontal, betis vertikal,
+  pinggul di atas dudukan kursi) dan lengan ke keyboard dengan gerak
+  mengetik halus; mereka berdiri dan berjalan hanya saat berpindah
+  tempat.
+- **Kerja paralel** — agen tetap semua divisi aktif bersamaan di
+  penempatannya: staf di luar siklus kurir berputar status mengikuti
+  langkah `workflow` divisi masing-masing, jadi bubble status tiap
+  divisi bergerak sendiri-sendiri secara simultan.
+
 ## 6. Wajah agen (face mesh)
 
 Setiap agen punya **face mesh 3D bawaan** — mata, alis, hidung, dan
@@ -176,6 +195,11 @@ dan sejenisnya — perhatikan syarat atribusi masing-masing, dan isi
 synth lo-fi generatif bawaan. Bila trek tidak bisa dimuat (mis.
 offline), synth dipakai otomatis sebagai fallback.
 
+Di HP, musik selalu mulai dari ketukanmu: tombol **Musik kantor**
+sengaja besar dan jelas, dan konteks audio dibuka/di-unlock tepat di
+dalam handler kliknya (sesuai kebijakan autoplay browser) — jadi
+sekali ketuk, musik langsung berbunyi dari speaker HP.
+
 ## 9. Membuka & membagikan kantor
 
 - Buka file HTML di browser modern (Chrome/Firefox/Safari/Edge).
@@ -183,3 +207,18 @@ offline), synth dipakai otomatis sebagai fallback.
   (Three.js dari CDN).
 - Untuk dibagikan: kirim file-nya, atau minta Muse menjadikannya
   artefak web (lihat prompt di bagian 1).
+
+## 10. Gedung & kontrol tampilan
+
+- **Bentuk gedung** — gabungan persegi + silinder: badan kotak
+  menyatu dengan menara silinder di sisi timur, tanpa tiang/kolom/
+  pilar. Tiap lantai, satu ruangan divisi menempati menara (divisi
+  bertanda `tower: true`, atau divisi terakhir di lantai itu);
+  lounge selalu di badan kotak lantai 1. Dua tangga tidak sejajar:
+  Tangga A di badan kotak (naik ke timur) dan Tangga B di menara
+  (naik ke utara, lantai 2 ke atas).
+- **Tombol "Sembunyikan Bubble & Ruangan"** — satu tombol master di
+  kiri atas: sekali klik menyembunyikan SEMUA bubble agen DAN semua
+  tombol ruangan sekaligus (visualisasi bersih); klik lagi
+  ("Tampilkan Bubble & Ruangan") mengembalikan keduanya. Tidak ada
+  tombol per-agen.

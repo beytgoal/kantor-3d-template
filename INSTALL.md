@@ -7,8 +7,8 @@ Copy-paste prompt ini ke Muse kamu:
 > (nama perusahaan, jumlah divisi, jumlah agen per divisi, industri
 > tiap divisi, workflow, dan lantai — bebas ditentukan, contoh:
 > "buatkan dengan 4 divisi, 8 agen, 3 lantai"; semua ada default
-> 3 divisi, 6 agen, 2 lantai — plus tema visual: malam, siang, atau
-> senja), lalu buatkan hasilnya sebagai artefak web
+> 3 divisi, 6 agen, 2 agen cadangan, 3 lantai — plus tema visual:
+> malam, siang, atau senja), lalu buatkan hasilnya sebagai artefak web
 > statis dan bagikan link publiknya.
 >
 > Setelah install, inisiasi setup lanjutannya oleh Muse (lihat
@@ -40,7 +40,7 @@ bagian 2, lalu inisiasi setup oleh Muse.
 Atau via script: `python3 install.py` (interaktif — tanya dulu berapa
 divisi, lalu per divisi: industri, fitur ruangan, workflow, dan jumlah
 agennya; lalu tema visual dan musik latar) atau dengan env var, contoh:
-`COMPANY="Nusantara" DIV_COUNT=4 FLOORS=3 THEME="siang" python3 install.py`
+`COMPANY="Nusantara" DIV_COUNT=4 FLOORS=3 RESERVES=2 THEME="siang" python3 install.py`
 (env per divisi: `DIV1_INDUSTRY`, `DIV1_AGENTS`, `DIV1_FEATURE`,
 `DIV1_WORKFLOW`, `DIV1="Data"`; per agen: `AGENT1="Budi" AGENT1_ROLE="CEO"`).
 Setelah selesai, script mencetak prompt siap copy-paste ke Muse untuk

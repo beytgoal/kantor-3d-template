@@ -63,12 +63,21 @@
 
   #musicBtn{ position:fixed; right:14px; bottom:14px; z-index:10;
     border:1px solid var(--panel-line); background:var(--panel); color:var(--ink);
-    font:500 12px system-ui,sans-serif; padding:8px 14px; border-radius:999px; cursor:pointer;
+    font:500 13.5px system-ui,sans-serif; padding:12px 18px; min-height:48px; border-radius:999px; cursor:pointer;
     backdrop-filter:blur(6px); display:flex; align-items:center; gap:7px; }
   #musicBtn .note{ font-size:14px; line-height:1; }
   #musicBtn.on{ border-color:var(--amber); color:var(--amber); }
   #musicBtn.on .note{ animation:bob 0.9s ease-in-out infinite; }
   @keyframes bob{ 0%,100%{ transform:translateY(0) } 50%{ transform:translateY(-2px) } }
+
+  /* SATU tombol master hide/unhide: semua bubble agent + semua tombol
+     ruangan (chips) sekaligus — visualisasi bersih tanpa tertutup. */
+  #bubbleAllBtn{ position:fixed; left:16px; top:64px; z-index:10;
+    border:1px solid var(--panel-line); background:var(--panel); color:var(--ink);
+    font:500 12px system-ui,sans-serif; padding:8px 14px; min-height:40px; border-radius:999px; cursor:pointer;
+    backdrop-filter:blur(6px); }
+  #bubbleAllBtn:hover{ border-color:var(--amber); }
+  #bubbleAllBtn[aria-pressed="true"]{ border-color:var(--amber); color:var(--amber); }
 
   #card{ position:fixed; left:14px; bottom:14px; z-index:11; width:272px; max-width:calc(100vw - 28px);
     background:var(--panel); border:1px solid var(--panel-line); border-radius:14px;
@@ -126,6 +135,8 @@
 
 <button id="musicBtn" aria-pressed="false"><span class="note">♪</span><span id="musicLabel">Musik kantor</span></button>
 
+<button id="bubbleAllBtn" aria-pressed="false">Sembunyikan Bubble &amp; Ruangan</button>
+
 <div id="card" role="dialog" aria-label="Detail objek">
   <button id="cardClose" aria-label="Tutup">&times;</button>
   <img id="cardFace" alt="" style="display:none;width:64px;height:64px;object-fit:cover;border-radius:50%;border:2px solid var(--amber);margin:0 0 8px;" />
@@ -156,9 +167,16 @@ const CONFIG = {
   companyUpper: "CONTOH",
   domain: "contoh.id",
   appUrl: "app.contoh.id",
-  // Jumlah lantai gedung. Pelat lantai, tangga, dan tombol lompat lantai
-  // dibangun otomatis mengikuti angka ini (minimal 1).
-  floors: 2,
+  // Jumlah lantai gedung (bawaan 3). Pelat lantai, tangga, dan tombol
+  // lompat lantai dibangun otomatis mengikuti angka ini (minimal 1).
+  // Gedung berbentuk gabungan PERSEGI + SILINDER: badan kotak menyatu
+  // dengan menara silinder; dua tangga TIDAK sejajar (satu di badan
+  // kotak, satu di menara).
+  floors: 3,
+  // Jumlah agent CADANGAN: agent standby fleksibel yang menunggu di
+  // area bersama (lounge lantai 1) lalu berpindah membantu divisi yang
+  // sibuk dan duduk di meja cadangan divisi itu. 0 = tanpa cadangan.
+  reserves: 2,
   // ── Pipeline divisi ──
   //    Urutan divisi di bawah = urutan ruangan kiri → kanan di tiap lantai.
   //    Bebas tambah, hapus, atau susun ulang — ruangan, meja, kursi, dan
@@ -207,7 +225,7 @@ const CONFIG = {
       short: "Keuangan",
       full: "Divisi Keuangan",
       room: "Ruang Keuangan",
-      floor: 2,
+      floor: 3,
       color: 0x7bd88f, css: "#7bd88f", cssDark: "#6b7a52",
       url: "keuangan.contoh.id",
       screen: "Keuangan",
@@ -287,6 +305,10 @@ function slugName(n){ return String(n == null ? '' : n).toLowerCase().replace(/[
   if (CONFIG.pipeline && typeof CONFIG.pipeline.source === 'number' && isFinite(CONFIG.pipeline.source)) PS = Math.floor(CONFIG.pipeline.source);
   if (PS < 0 || PS >= CONFIG.divisions.length) PS = 0;
   CONFIG.pipeline = { source: PS };
+  // agen cadangan: jumlah agent standby fleksibel (bawaan 2; 0 = tanpa)
+  var RS = 2;
+  if (typeof CONFIG.reserves === 'number' && isFinite(CONFIG.reserves) && CONFIG.reserves >= 0) RS = Math.floor(CONFIG.reserves);
+  CONFIG.reserves = RS;
   // agen: id & divisi (index; boleh juga nama pendek divisi)
   CONFIG.agents.forEach(function(a, i){
     if (!a.id) a.id = slugName(a.name);
@@ -458,6 +480,25 @@ document.getElementById("stage").setAttribute("aria-label", "Kantor virtual 3D "
     bar.insertBefore(b, exit);
   });
 })();
+
+// SATU tombol master hide/unhide: OFF menyembunyikan SEMUA bubble agent
+// DAN semua tombol/chips navigasi ruangan sekaligus; ON mengembalikan
+// keduanya. Tidak ada tombol per-agent sama sekali.
+(function bubbleToggle(){
+  var btn = document.getElementById('bubbleAllBtn');
+  var nav = document.getElementById('chips');
+  var wrap = document.getElementById('bubbles');
+  if (!btn) return;
+  var hidden = false;
+  btn.addEventListener('click', function () {
+    hidden = !hidden;
+    if (window.__kantorSetBubbles) window.__kantorSetBubbles(hidden);
+    wrap.style.display = hidden ? 'none' : '';
+    nav.style.display = hidden ? 'none' : '';
+    btn.textContent = hidden ? 'Tampilkan Bubble & Ruangan' : 'Sembunyikan Bubble & Ruangan';
+    btn.setAttribute('aria-pressed', hidden ? 'true' : 'false');
+  });
+})();
 (function () {
   'use strict';
 
@@ -465,6 +506,7 @@ document.getElementById("stage").setAttribute("aria-label", "Kantor virtual 3D "
     document.getElementById('fallback').style.display = 'flex';
     document.getElementById('chips').style.display = 'none';
     document.getElementById('musicBtn').style.display = 'none';
+    var bb = document.getElementById('bubbleAllBtn'); if (bb) bb.style.display = 'none';
     var pv=document.getElementById('povBar'); if(pv) pv.style.display='none';
   }
   if (!window.THREE || !THREE.OrbitControls) { fail(); return; }
@@ -516,11 +558,20 @@ document.getElementById("stage").setAttribute("aria-label", "Kantor virtual 3D "
     return L;
   }
   /* ── Layout ruangan data-driven dari CONFIG ──────────────────────
-     Gedung: X -13.4..13.4, Z -8.4..8.4. Tiap lantai, ruangan (divisi di
-     lantai itu + lounge di lantai 1) dibagi rata berdampingan.
-     Tangga selalu di belakang-kiri (x -8.8..-0.7, z -8.4..-4.4). */
+     Gedung gabungan PERSEGI + SILINDER: badan kotak X -13.4..9.5,
+     Z -8.4..8.4 menyatu dengan menara silinder (pusat 9.5,0, r 7).
+     Tiap lantai, satu ruangan divisi menempati menara silinder
+     (divisi bertanda `tower: true`, atau divisi terakhir di lantai
+     itu); ruangan lain berbagi badan kotak berdampingan. Lounge
+     selalu di badan kotak lantai 1. Tangga A di belakang-kiri badan
+     kotak (x -8.8..-0.7, z -8.4..-4.4); Tangga B di menara silinder
+     — keduanya TIDAK sejajar. */
   var NFLOORS = CONFIG.floors || 2;
-  var BX0 = -13.4, BX1 = 13.4, BZ0 = -8.4, BZ1 = 8.4;
+  var BX0 = -13.4, BX1 = 9.5, BZ0 = -8.4, BZ1 = 8.4;
+  var TCX = 9.5, TCZ = 0, TR = 7; // pusat & radius menara silinder
+  function inBoxPt(x, z) { return x >= BX0 && x <= BX1 && z >= BZ0 && z <= BZ1; }
+  function inCylPt(p) { var dx = p.x - TCX, dz = p.z - TCZ; return dx * dx + dz * dz <= TR * TR; }
+  function inFootprint(x, z) { return inBoxPt(x, z) || inCylPt({ x: x, z: z }); }
 
   function shadeHex(hex, f){ // gelapkan warna hex dengan faktor f (0..1)
     var r = Math.max(0, Math.min(255, Math.round(((hex >> 16) & 255) * f)));
@@ -540,15 +591,35 @@ document.getElementById("stage").setAttribute("aria-label", "Kantor virtual 3D "
   var roomsByFloor = [];
   (function buildRoomLayout(){
     for (var f = 0; f < NFLOORS; f++) {
-      var list = [];
+      var zones = [];
       CONFIG.divisions.forEach(function(d, di){
-        if (d.floor === f + 1) list.push({ div: d, divIndex: di });
+        if (d.floor === f + 1) zones.push({ div: d, divIndex: di });
       });
-      if (f === 0) list.push({ div: null, divIndex: -1 }); // lounge di lantai 1, paling kanan
-      var n = list.length, w = (BX1 - BX0) / Math.max(1, n);
+      if (f === 0) zones.push({ div: null, divIndex: -1 }); // lounge di lantai 1 (badan kotak)
+      // ruangan menara: divisi bertanda `tower: true`, else divisi terakhir di lantai ini
+      var towerZone = null;
+      zones.forEach(function(r){ if (r.div && r.div.tower) towerZone = r; });
+      if (!towerZone) {
+        for (var zi = zones.length - 1; zi >= 0; zi--) {
+          if (zones[zi].div) { towerZone = zones[zi]; break; }
+        }
+      }
+      var boxZones = zones.filter(function(r){ return r !== towerZone; });
+      var m = Math.max(1, boxZones.length), slotW = (BX1 - BX0) / m;
+      boxZones.forEach(function(r, i){
+        r.kind = 'box';
+        r.x0 = BX0 + i * slotW; r.x1 = BX0 + (i + 1) * slotW;
+        r.cx = (r.x0 + r.x1) / 2; r.cz = 0;
+      });
+      if (towerZone) {
+        towerZone.kind = 'cyl';
+        towerZone.x0 = TCX - TR; towerZone.x1 = TCX + TR;
+        towerZone.cx = TCX; towerZone.cz = TCZ;
+      }
+      // urutan tampilan: ruangan badan kotak kiri -> kanan, lalu menara
+      var list = boxZones.concat(towerZone ? [towerZone] : []);
       list.forEach(function(r, i){
-        r.x0 = BX0 + i * w; r.x1 = BX0 + (i + 1) * w; r.cx = (r.x0 + r.x1) / 2;
-        r.floor = f; r.baseY = f * FH; r.posInFloor = i; r.roomsOnFloor = n;
+        r.floor = f; r.baseY = f * FH; r.posInFloor = i; r.roomsOnFloor = list.length;
         r.agentCount = 0; r.desks = []; r.desksTaken = [];
       });
       roomsByFloor.push(list);
@@ -562,7 +633,11 @@ document.getElementById("stage").setAttribute("aria-label", "Kantor virtual 3D "
     }
     return null;
   }
-  function loungeRoom(){ return roomsByFloor[0][roomsByFloor[0].length - 1]; }
+  function loungeRoom(){
+    var l = roomsByFloor[0];
+    for (var i = 0; i < l.length; i++) if (l[i].divIndex === -1) return l[i];
+    return l[l.length - 1];
+  }
 
   // agen → ruangan (untuk hitung meja per ruangan)
   var agentRooms = CONFIG.agents.map(function(a){
@@ -580,6 +655,9 @@ document.getElementById("stage").setAttribute("aria-label", "Kantor virtual 3D "
   });
   for (var fl = 0; fl < NFLOORS - 1; fl++) {
     roomLight(-4.7, fl * FH + 3.1, -5.4, V.lights.stair.color, V.lights.stair.intensity, V.lights.stair.distance);
+  }
+  for (var fb2 = 1; fb2 < NFLOORS - 1; fb2++) { // lampu Tangga B (menara) untuk flight lantai 2 ke atas
+    roomLight(TCX + 2.6, fb2 * FH + 2.6, 0.8, V.lights.stair.color, V.lights.stair.intensity, V.lights.stair.distance);
   }
 
   // debu bintang redup di kegelapan sekitar gedung
@@ -659,14 +737,56 @@ document.getElementById("stage").setAttribute("aria-label", "Kantor virtual 3D "
     var top = box(building, w - 0.04, 0.03, d - 0.04, MAT.wood, cx, topY + 0.012, cz);
     return top;
   }
-  // Lantai 1 (penuh)
-  slabPiece(0, 0, 26.8, 16.8, 0);
-  // Lantai atas (ada bukaan tangga x[-8.8,-0.7], z[-8.4,-4.4]) — satu set per lantai
+  /* ── Pelat lantai: badan kotak + cakram menara silinder ──────────
+     Bukaan Tangga A di badan kotak (x[-8.8,-0.7], z[-8.4,-4.4]);
+     bukaan Tangga B = irisan wedge pada cakram menara menghadap arah
+     datang tangga (sudut dunia sekitar -0.80 rad dari pusat menara). */
+  var CYL_HOLE_LEN = 5.28;   // sisa busur cakram berlubang (2PI - 1.0)
+  var CYL_GEO_START = 2.87;  // thetaStart CylinderGeometry cakram
+  var CIRC_GEO_START = 1.30; // thetaStart CircleGeometry penutup cakram
+  function cylSlab(topY, hole) {
+    var geo = hole ? new THREE.CylinderGeometry(TR, TR, 0.35, 44, 1, false, CYL_GEO_START, CYL_HOLE_LEN)
+                   : new THREE.CylinderGeometry(TR, TR, 0.35, 44);
+    var m = new THREE.Mesh(geo, MAT.slab);
+    m.position.set(TCX, topY - 0.175, TCZ);
+    building.add(m);
+    var topGeo = hole ? new THREE.CircleGeometry(TR - 0.04, 44, CIRC_GEO_START, CYL_HOLE_LEN)
+                      : new THREE.CircleGeometry(TR - 0.04, 44);
+    var top = new THREE.Mesh(topGeo, MAT.wood);
+    top.rotation.x = -Math.PI / 2;
+    top.position.set(TCX, topY + 0.012, TCZ);
+    building.add(top);
+    return top;
+  }
+  // balkon kaca melengkung mengikuti busur depan menara silinder
+  var glassBandMat = M(V.palette.glass, { transparent: true, opacity: 0.5, roughness: 0.2, metalness: 0.1 });
+  glassBandMat.side = THREE.DoubleSide;
+  function cylBalcony(topY) {
+    var band = new THREE.Mesh(new THREE.CylinderGeometry(TR + 0.03, TR + 0.03, 0.8, 32, 1, true, 0.37, 1.7), glassBandMat);
+    band.position.set(TCX, topY + 0.42, TCZ);
+    building.add(band);
+    var rail = new THREE.Mesh(new THREE.CylinderGeometry(TR + 0.03, TR + 0.03, 0.05, 32, 1, true, 0.37, 1.7), MAT.metal);
+    rail.position.set(TCX, topY + 0.85, TCZ);
+    building.add(rail);
+  }
+  // Lantai 1 (penuh): badan kotak + cakram menara
+  slabPiece(-1.95, 0, 22.9, 16.8, 0);
+  cylSlab(0, false);
+  cylBalcony(0);
+  // Lantai atas: potongan badan kotak (bukaan Tangga A) + cakram berlubang Tangga B
   for (var fl = 1; fl < NFLOORS; fl++) {
-    slabPiece(0, 2.0, 26.8, 12.8, fl * FH);            // bagian depan
-    slabPiece(-11.1, -6.4, 4.6, 4.0, fl * FH);          // belakang-kiri
-    slabPiece(7.15, -6.4, 12.5, 4.0, fl * FH);          // belakang-kanan
-    slabPiece(0.1, -6.32, 1.6, 4.16, fl * FH);          // pendaratan tangga
+    slabPiece(-1.95, 5.2, 22.9, 6.4, fl * FH);          // badan kotak bagian depan
+    slabPiece(-11.1, -3.2, 4.6, 10.4, fl * FH);         // tengah-kiri
+    slabPiece(4.4, -3.2, 10.2, 10.4, fl * FH);          // tengah-kanan
+    cylSlab(fl * FH, true);
+    cylBalcony(fl * FH);
+    // pagar pengaman di tepi bukaan Tangga B (busur kaca + rel atas)
+    var guard = new THREE.Mesh(new THREE.CylinderGeometry(6.55, 6.55, 0.95, 24, 1, true, 1.82, 1.1), glassBandMat);
+    guard.position.set(TCX, fl * FH + 0.48, TCZ);
+    building.add(guard);
+    var guardRail = new THREE.Mesh(new THREE.CylinderGeometry(6.55, 6.55, 0.05, 24, 1, true, 1.82, 1.1), MAT.metal);
+    guardRail.position.set(TCX, fl * FH + 0.98, TCZ);
+    building.add(guardRail);
   }
 
   /* OPEN-PLAN TOTAL — tanpa dinding sama sekali.
@@ -682,12 +802,8 @@ document.getElementById("stage").setAttribute("aria-label", "Kantor virtual 3D "
         box(building, 0.03, 0.9, 0.03, MAT.dark, p[0] + 0.8, base + 3.5, p[1]);
       });
     });
-    // tiang struktur ramping di tepi slab (bukan dinding) — penanda rangka gedung terbuka
-    [-13.1, 13.1].forEach(function (tx) {
-      [-7.9, 7.9].forEach(function (tz) {
-        box(building, 0.22, 3.4, 0.22, MAT.metal, tx, base + 1.7, tz);
-      });
-    });
+    // TANPA tiang/kolom/pilar sama sekali (standar desain terbaru):
+    // slab tampil bersih; panel lampu menggantung bebas di atas zona.
   }
   // Pembatas rendah antar zona: planter box + tanaman & rak rendah (tinggi maks ~0.85)
   function lowDivider(x, z, topY, len, alongZ) {
@@ -707,6 +823,7 @@ document.getElementById("stage").setAttribute("aria-label", "Kantor virtual 3D "
   // Pembatas rendah antar zona di tiap lantai (di batas antar ruangan)
   roomsByFloor.forEach(function (rooms, fl) {
     for (var i = 0; i < rooms.length - 1; i++) {
+      if (rooms[i].kind !== 'box' || rooms[i + 1].kind !== 'box') continue; // sambungan ke menara dibiarkan terbuka
       lowDivider(rooms[i].x1, 4.4, fl * FH, 5.6, true);
     }
   });
@@ -754,6 +871,34 @@ document.getElementById("stage").setAttribute("aria-label", "Kantor virtual 3D "
     return stairGroup;
   }
   for (var fl = 0; fl < NFLOORS - 1; fl++) buildStairFlight(fl);
+
+  /* Tangga B — di dalam menara silinder (sisi timur), melayani flight
+     lantai 2 ke atas (k = 1..NFLOORS-2). Arah naik ke UTARA (z
+     mengecil), tegak lurus Tangga A yang naik ke timur di badan
+     kotak — keduanya TIDAK sejajar dan tidak menumpuk segaris. */
+  function buildStairFlightB(k) {
+    var g = new THREE.Group();
+    g.position.y = k * FH;
+    building.add(g);
+    for (var i = 0; i < 14; i++) {
+      var topY = (i + 1) * 0.3, cz = 4.8 - i * 0.6246;
+      box(g, 2.6, topY, 0.62, stepMat, TCX + 2.8, topY / 2, cz);
+      box(g, 2.64, 0.035, 0.64, treadMat, TCX + 2.8, topY + 0.017, cz);
+      if (i % 3 === 0) { // lampu anak tangga
+        box(g, 0.3, 0.05, 0.1, panelLightMat(), TCX + 1.62, topY - 0.12, cz);
+      }
+    }
+    // railing sisi terbuka (menghadap pusat menara)
+    var r = box(g, 0.07, 0.07, Math.hypot(8.12, FH) + 0.4, MAT.metal, TCX + 1.55, FH / 2 + 0.98, 0.74);
+    r.rotation.x = -Math.atan2(FH, 8.12);
+    [1, 4, 7, 10, 13].forEach(function (s) {
+      box(g, 0.05, 0.95, 0.05, MAT.metal, TCX + 1.55, (s + 1) * 0.3 + 0.47, 4.8 - s * 0.6246);
+    });
+    clickable(g, { title: 'Tangga Menara', sub: 'Penghubung Lantai ' + (k + 1) + ' ↔ Lantai ' + (k + 2),
+      body: 'Tangga kedua di dalam menara silinder, naik ke arah utara — sengaja tidak sejajar dengan tangga utama di badan kotak.' });
+    return g;
+  }
+  for (var fb = 1; fb < NFLOORS - 1; fb++) buildStairFlightB(fb);
 
   // dekorasi bawah tangga: tumpukan boks arsip + tanaman
   box(building, 0.7, 0.5, 0.7, M(0x9c8465), -5.6, 0.25, -6.2);
@@ -919,11 +1064,13 @@ document.getElementById("stage").setAttribute("aria-label", "Kantor virtual 3D "
   var boombox = null, eqBars = [], notes = [];
 
   // grid meja per ruangan: 2 kolom, baris menyesuaikan jumlah agen
+  // (satu meja ekstra di luar jumlah agen = MEJA CADANGAN untuk agent cadangan)
   function deskGrid(room) {
-    var n = Math.max(4, room.agentCount);
+    if (room.kind === 'cyl') return deskGridCyl(room);
+    var n = Math.max(4, room.agentCount + 1);
     var rows = Math.ceil(n / 2);
-    var colX;
-    if (room.roomsOnFloor === 1) colX = [room.cx - 1.7, room.cx + 1.7];
+    var w = room.x1 - room.x0, colX;
+    if (w < 7) colX = [room.x0 + w * 0.3, room.x0 + w * 0.7];
     else if (room.cx < 0) colX = [room.x0 + 2.4, room.x0 + 5.8];
     else colX = [room.x1 - 5.4, room.x1 - 2.2];
     var desks = [];
@@ -936,8 +1083,22 @@ document.getElementById("stage").setAttribute("aria-label", "Kantor virtual 3D "
     }
     return desks;
   }
-
-  // posisi x untuk easel di lantai belakang yang padat (bukan di atas lubang tangga)
+  // grid meja ruangan menara silinder: baris mengikuti tali busur (chord)
+  function deskGridCyl(room) {
+    var n = Math.max(4, room.agentCount + 1);
+    var desks = [];
+    var rowZ = [-3.6, -0.8, 2.0, 4.6];
+    for (var r = 0; r < rowZ.length && desks.length < n; r++) {
+      var z = rowZ[r];
+      var half = Math.sqrt(Math.max(1, TR * TR - z * z)) - 1.6;
+      var xs = [TCX - half + 1.1, TCX + half - 1.1];
+      for (var c = 0; c < 2 && desks.length < n; c++) {
+        desks.push({ x: xs[c], z: z, sdx: 0, sdz: 1.15 });
+      }
+    }
+    while (desks.length < n) desks.push({ x: TCX, z: -0.8 + (desks.length % 3) * 0.5, sdx: 0, sdz: 1.15 });
+    return desks;
+  }
   function solidBackX(room, count) {
     var ranges = [[room.x0 + 0.9, room.x1 - 0.9]];
     if (room.floor > 0) { // lantai atas: lubang tangga x[-8.8,-0.7]
@@ -960,6 +1121,13 @@ document.getElementById("stage").setAttribute("aria-label", "Kantor virtual 3D "
     var div = room.div, topY = room.baseY;
     room.desks = deskGrid(room);
     room.desksTaken = room.desks.map(function () { return false; });
+    // meja cadangan (meja pertama di luar milik agen tetap) untuk agent cadangan
+    room.helpSeat = room.desks.length > room.agentCount
+      ? { x: room.desks[room.agentCount].x + (room.desks[room.agentCount].sdx || 0),
+          z: room.desks[room.agentCount].z + (room.desks[room.agentCount].sdz || 0),
+          floor: room.floor }
+      : null;
+    room.helpTaken = false;
     // karpet zona
     var rugMesh = rug(room.cx, 1.6, (room.x1 - room.x0) - 2.6, 11.6, shadeHex(div.color, 0.62), topY);
     clickable(rugMesh, { title: div.room, sub: div.fullFloor, body: div.roomDesc });
@@ -1112,16 +1280,74 @@ document.getElementById("stage").setAttribute("aria-label", "Kantor virtual 3D "
     plant(building, room.x0 + 1.5, topY, 7.3, 0.9);
   }
 
+  /* Ruangan divisi di menara silinder: karpet cakram + meja mengikuti
+     tali busur + papan tulis miring menghadap pusat + fitur di busur. */
+  function buildCylRoom(room) {
+    var div = room.div, topY = room.baseY;
+    room.desks = deskGrid(room);
+    room.desksTaken = room.desks.map(function () { return false; });
+    room.helpSeat = room.desks.length > room.agentCount
+      ? { x: room.desks[room.agentCount].x + (room.desks[room.agentCount].sdx || 0),
+          z: room.desks[room.agentCount].z + (room.desks[room.agentCount].sdz || 0),
+          floor: room.floor }
+      : null;
+    room.helpTaken = false;
+    var rugMesh = new THREE.Mesh(new THREE.CircleGeometry(5.7, 36), rugMat(shadeHex(div.color, 0.62)));
+    rugMesh.rotation.x = -Math.PI / 2;
+    rugMesh.position.set(TCX, topY + 0.03, TCZ);
+    building.add(rugMesh);
+    clickable(rugMesh, { title: div.room, sub: div.fullFloor, body: div.roomDesc });
+    room.desks.forEach(function (dk) { deskUnit(dk.x, dk.z, topY, div); });
+    whiteboard(TCX + 3.1, -4.9, topY, -0.56, div.color, div.board, div.fullFloor, div.boardDesc);
+    plant(building, TCX + 4.8, topY, 3.6, 1.0);
+    plant(building, TCX - 4.6, topY, 2.8, 1.1);
+    plant(building, TCX + 4.4, topY, -3.4, 0.9);
+    var feat = div.feature || 'none';
+    if (feat === 'server') {
+      var sg = new THREE.Group();
+      sg.position.set(TCX - 4.65, topY, 0.2);
+      building.add(sg);
+      [-1.3, 0, 1.3].forEach(function (dz, ri) {
+        box(sg, 0.55, 2.0, 1.1, MAT.dark, 0, 1.0, dz);
+        for (var r2 = 0; r2 < 5; r2++) {
+          box(sg, 0.03, 0.16, 0.9, M(0x31363f), 0.29, 0.3 + r2 * 0.36, dz);
+          var led = new THREE.Mesh(new THREE.PlaneGeometry(0.07, 0.07), M(0x0d2b1a, { emissive: 0x69f0ae, emissiveIntensity: 1.3 }));
+          led.position.set(0.31, 0.38 + r2 * 0.36, dz - 0.32);
+          led.rotation.y = Math.PI / 2;
+          sg.add(led);
+          blinkers.push({ mat: led.material, seed: ri * 3 + r2 * 1.7 });
+        }
+      });
+      clickable(sg, { title: 'Rak Server', sub: 'Infrastruktur ' + div.full, body: 'Tiga rak server tempat data dikumpulkan dan diproses sebelum dipakai tim.' });
+    } else if (feat === 'books') {
+      bookshelf(TCX - 4.2, -2.6, topY, Math.PI / 2 + 0.5, div);
+    } else if (feat === 'studio') {
+      var st = new THREE.Group();
+      st.position.set(TCX + 4.1, topY, -3.4); st.rotation.y = -0.6;
+      building.add(st);
+      box(st, 2.3, 2.5, 0.06, M(0xd9d4c8), 0, 1.25, -1.05);
+      var ring = new THREE.Mesh(new THREE.TorusGeometry(0.38, 0.035, 12, 36), M(0xffffff, { emissive: 0xfff6dd, emissiveIntensity: 1.5 }));
+      ring.position.set(0, 1.5, 0.35); st.add(ring);
+      cyl(st, 0.02, 0.02, 1.15, MAT.metal, 0, 0.57, 0.35, 8);
+      box(st, 0.2, 0.14, 0.3, MAT.dark, 0, 1.32, 0.62);
+      clickable(st, { title: 'Sudut Studio', sub: div.fullFloor, body: 'Set studio mini dengan ring light dan backdrop - tempat konten visual diproduksi.' });
+    }
+  }
+
   // bangun semua ruangan dari CONFIG
   roomsByFloor.forEach(function (rooms) {
     rooms.forEach(function (room) {
-      if (room.div) buildDivisionRoom(room);
+      if (room.div) { if (room.kind === 'cyl') buildCylRoom(room); else buildDivisionRoom(room); }
       else buildLoungeRoom(room);
     });
   });
 
   /* ── Agent 3D ───────────────────────────────────────────────────── */
   var bubbleWrap = document.getElementById('bubbles');
+  // status tombol master hide/unhide (bubble + ruangan) - diatur handler tombol di bawah
+  var bubblesHidden = false;
+  window.__kantorSetBubbles = function (h) { bubblesHidden = !!h; };
+  window.__kantorBubbles = { isHidden: function () { return bubblesHidden; } };
 
   /* Patch wajah: potongan bola (radius sedikit di atas kepala) yang memeluk
      permukaan kepala di sisi depan (+Z), bertekstur foto wajah agent dengan
@@ -1207,10 +1433,20 @@ document.getElementById("stage").setAttribute("aria-label", "Kantor virtual 3D "
       parent.add(pivot);
       return pivot;
     }
-    var legL = limb(inner, -0.11, 0.84, 0.15, 0.84, 0.17, pants);
-    var legR = limb(inner, 0.11, 0.84, 0.15, 0.84, 0.17, pants);
-    box(legL, 0.16, 0.07, 0.26, shoe, 0, -0.84, 0.04);
-    box(legR, 0.16, 0.07, 0.26, shoe, 0, -0.84, 0.04);
+    // kaki dua segmen berengsel lutut: paha (pivot di pinggul) + betis
+    // (pivot anak di lutut) - memungkinkan pose DUDUK di kursi meja:
+    // paha horizontal ke depan, betis vertikal turun sampai sepatu di lantai.
+    function leg(x) {
+      var thigh = limb(inner, x, 0.86, 0.15, 0.42, 0.17, pants);
+      var shin = new THREE.Group();
+      shin.position.set(0, -0.42, 0);
+      thigh.add(shin);
+      box(shin, 0.13, 0.42, 0.15, pants, 0, -0.21, 0);
+      box(shin, 0.16, 0.07, 0.26, shoe, 0, -0.42, 0.04);
+      return { thigh: thigh, shin: shin };
+    }
+    var legLO = leg(-0.11), legRO = leg(0.11);
+    var legL = legLO.thigh, legR = legRO.thigh;
     // leher + torso kain bertekstur + bahu membulat (lebih halus)
     cyl(inner, 0.075, 0.085, 0.14, skin, 0, 1.47, 0, 16);
     box(inner, 0.5, 0.6, 0.3, cloth, 0, 1.14, 0); // torso
@@ -1245,7 +1481,7 @@ document.getElementById("stage").setAttribute("aria-label", "Kantor virtual 3D "
     pack.visible = false;
     inner.add(pack);
 
-    g.userData.parts = { inner: inner, legL: legL, legR: legR, armL: armL, armR: armR, pack: pack };
+    g.userData.parts = { inner: inner, legL: legL, legR: legR, shinL: legLO.shin, shinR: legRO.shin, armL: armL, armR: armR, pack: pack };
     scene.add(g);
     return g;
   }
@@ -1268,7 +1504,8 @@ document.getElementById("stage").setAttribute("aria-label", "Kantor virtual 3D "
       face: def.face || null,
       pos: mesh.position, path: [], walkPhase: Math.random() * 6,
       moving: false, carrying: false, status: 'Bekerja di meja',
-      idleAngle: Math.PI, facePoint: null, lastStatus: ''
+      idleAngle: Math.PI, facePoint: null, lastStatus: '',
+      wantSeat: true, sitting: false, wfIdx: 0, idleTimer: Math.random() * 8
     };
     clickable(mesh, { agent: a, title: def.name, sub: def.role, body: '' });
     a.lastSpot = a.seatSpot;
@@ -1343,6 +1580,79 @@ document.getElementById("stage").setAttribute("aria-label", "Kantor virtual 3D "
   var agentById = {};
   agents.forEach(function (a) { agentById[a.id] = a; });
 
+  /* ── Agent cadangan (CONFIG.reserves) ────────────────────────────
+     Agent standby fleksibel: duduk di Area Standby (lounge lantai 1),
+     lalu berpindah membantu divisi secara bergiliran - berjalan ke
+     meja cadangan divisi itu, duduk & bekerja di sana, lalu kembali
+     standby atau berpindah ke divisi lain. Jumlah dari CONFIG. */
+  var reserveAgents = [];
+  (function buildReserves() {
+    var n = CONFIG.reserves || 0;
+    if (!n || !CONFIG.divisions.length) return;
+    var lounge = loungeRoom();
+    var sg = new THREE.Group();
+    sg.position.set(lounge.x0 + 0.6, 0, -3.1);
+    building.add(sg);
+    box(sg, 3.6, 0.5, 0.8, M(0x8a7454, { roughness: 0.9 }), 1.8, 0.25, 0);
+    box(sg, 3.6, 0.06, 0.8, M(0x5d4a2f), 1.8, 0.53, 0);
+    clickable(sg, { title: 'Area Standby - Agent Cadangan', sub: 'Ruang bersama - Lantai 1',
+      body: 'Tempat agent cadangan menunggu tugas. Mereka otomatis berjalan membantu divisi secara bergiliran, duduk di meja cadangan divisi itu, lalu kembali ke sini. Jumlah cadangan diatur lewat CONFIG.reserves.' });
+    for (var i = 0; i < n; i++) {
+      var sx = lounge.x0 + 1.3 + i * 1.15;
+      chair(building, sx, 0, -2.35, 0, 0x8fa3b8);
+      var ra = mkAgent({
+        id: 'cadangan-' + (i + 1), name: 'Cadangan ' + (i + 1), role: 'Agent Cadangan',
+        color: '#aebdd0', colorCss: '#5f7d95',
+        face: null, faceCrop: null, hair: 0x22201e, hairStyle: 'short', skin: 0xeebd96, skirt: false,
+        seat: { x: sx, z: -2.35, floor: 0 }, divIndex: -2
+      });
+      ra.standbySpot = ra.seatSpot;
+      ra.rState = 'standby';
+      ra.rTimer = 5 + i * 6 + Math.random() * 4;
+      ra.helpRoom = null;
+      ra.status = 'Standby - siap membantu';
+      agents.push(ra);
+      agentById[ra.id] = ra;
+      reserveAgents.push(ra);
+    }
+  })();
+  var reserveRoundRobin = 0;
+  function updateReserves(dt) {
+    reserveAgents.forEach(function (a) {
+      if (a.moving || a.path.length) return; // sedang berjalan - gerak ditangani updateAgent
+      a.rTimer -= dt;
+      if (a.rState === 'standby' && a.rTimer <= 0) {
+        for (var tries = 0; tries < CONFIG.divisions.length; tries++) {
+          var di = (reserveRoundRobin + tries) % CONFIG.divisions.length;
+          var room = roomOfDivision(di);
+          if (room && room.helpSeat && !room.helpTaken) {
+            reserveRoundRobin = di + 1;
+            room.helpTaken = true;
+            a.helpRoom = room;
+            a.rState = 'going';
+            sendTo(a, { x: room.helpSeat.x, z: room.helpSeat.z, floor: room.helpSeat.floor },
+              'Berangkat membantu ' + CONFIG.divisions[di].short, null, true);
+            break;
+          }
+        }
+        if (a.rState === 'standby') a.rTimer = 6; // semua meja cadangan terisi - tunggu sebentar
+      } else if (a.rState === 'going') {
+        a.rState = 'helping';
+        a.rTimer = 16;
+        a.status = 'Membantu ' + (a.helpRoom && a.helpRoom.div ? a.helpRoom.div.short : 'divisi');
+      } else if (a.rState === 'helping' && a.rTimer <= 0) {
+        if (a.helpRoom) a.helpRoom.helpTaken = false;
+        a.helpRoom = null;
+        a.rState = 'returning';
+        sendToSeat(a, 'Kembali standby');
+      } else if (a.rState === 'returning') {
+        a.rState = 'standby';
+        a.rTimer = 7 + Math.random() * 8;
+        a.status = 'Standby - siap membantu';
+      }
+    });
+  }
+
   /* ── Rute antar ruangan & antar lantai (lewat tangga) ──────────── */
   // waypoint naik satu flight tangga (dari lantai k ke k+1), relatif terhadap k*FH
   var STAIR_UP = [
@@ -1363,97 +1673,96 @@ document.getElementById("stage").setAttribute("aria-label", "Kantor virtual 3D "
   function curFloor(a) { return Math.max(0, Math.min(NFLOORS - 1, Math.round(a.pos.y / FH))); }
   function p3(p, floor) { return { x: p.x, z: p.z, y: p.y !== undefined ? p.y : floor * FH }; }
 
+  /* ── Rute antar ruangan & antar lantai (dua tangga) ──────────────
+     Tangga A (badan kotak, belakang-kiri) melayani semua lantai;
+     Tangga B (menara silinder) melayani flight lantai 2 ke atas.
+     Perjalanan antar lantai memilih Tangga B bila asal/tujuan
+     menyentuh menara dan flight-nya tersedia, selain itu Tangga A. */
+  var A_ENTRY = { x: -9.4, z: -6.1 }, A_TOP = { x: 0.2, z: -6.1 }, A_EXIT = { x: 0.2, z: -3.2 };
+  var B_ENTRY = { x: TCX + 2.8, z: 5.6 }, B_EXIT = { x: TCX + 2.8, z: -4.0 };
+  function stairBUp(k) {
+    var pts = [{ x: B_ENTRY.x, z: B_ENTRY.z, y: k * FH }];
+    [0, 3, 6, 9, 13].forEach(function (i) {
+      pts.push({ x: TCX + 2.8, z: 4.8 - i * 0.6246, y: k * FH + (i + 1) * 0.3 });
+    });
+    pts.push({ x: B_EXIT.x, z: B_EXIT.z, y: (k + 1) * FH });
+    return pts;
+  }
+  function stairBDown(k) {
+    var up = stairBUp(k), out = [];
+    for (var i = up.length - 1; i >= 0; i--) out.push(up[i]);
+    return out;
+  }
   function route(a, to) {
-    var from = { x: a.pos.x, z: a.pos.z, floor: curFloor(a) };
-    if (from.floor === to.floor && Math.hypot(from.x - to.x, from.z - to.z) < 0.15) return [];
     var pts = [];
     function push(p, floor) {
       var q = p3(p, floor);
       var last = pts[pts.length - 1];
       if (!last || Math.hypot(last.x - q.x, last.z - q.z, last.y - q.y) > 0.05) pts.push(q);
     }
-    // ke koridor lantai f (z=-3.2) dari titik p
-    function toCorridor(p, f) {
-      if (f === 0) { if (p.z > 2) push({ x: -8.6, z: 5.3 }, 0); }
-      else if (Math.abs(p.z + 3.2) > 0.35) push({ x: p.x, z: -3.2 }, f);
-    }
-    // masuk ke lantai f dari tangga menuju titik p
-    function enterFloor(p, f) {
-      if (f === 0) {
-        if (p.z > 2) push({ x: -8.6, z: 5.3 }, 0);
-        push(p, 0);
-      } else {
-        push({ x: p.x, z: -3.2 }, f);
-        push(p, f);
-      }
-    }
-    // jalan di lantai yang sama (tanpa tangga)
-    function sameFloor(fromP, toP, f) {
+    var cur = { x: a.pos.x, z: a.pos.z, floor: curFloor(a) };
+    var atStart = true;
+    // jalan di satu lantai dari cur ke p (lantai f), lalu cur = p
+    function walkTo(p, f) {
       if (f === 0) {
         var usedVia = false;
-        if (a.lastSpot && a.lastSpot.via) {
+        if (atStart && a.lastSpot && a.lastSpot.via) {
           for (var vi = a.lastSpot.via.length - 1; vi >= 0; vi--) push(a.lastSpot.via[vi], 0);
           usedVia = true;
         }
-        if (toP.via) {
-          toP.via.forEach(function (v) { push(v, 0); });
-          usedVia = true;
-        }
-        if (!usedVia && (fromP.z > 2 || toP.z > 2)) push({ x: -8.6, z: 5.3 }, 0);
-        push(toP, 0);
+        if (p.via) { p.via.forEach(function (v) { push(v, 0); }); usedVia = true; }
+        if (!usedVia && (cur.z > 2 || p.z > 2)) push({ x: -8.6, z: 5.3 }, 0);
+        if (inCylPt(p) && !inCylPt(cur)) push({ x: TCX + 4.7, z: 4.2 }, 0);
+        push(p, 0);
       } else {
-        if (Math.abs(fromP.z + 3.2) > 0.35) push({ x: fromP.x, z: -3.2 }, f);
-        enterFloor(toP, f);
+        var curIn = inCylPt(cur), pIn = inCylPt(p);
+        if (curIn && !pIn) { push({ x: TCX + 5.9, z: -2.0 }, f); push({ x: p.x, z: -3.2 }, f); }
+        else if (!curIn && pIn) { if (Math.abs(cur.z + 3.2) > 0.35) push({ x: cur.x, z: -3.2 }, f); push({ x: TCX + 5.9, z: -2.0 }, f); }
+        else if (curIn && pIn) { if ((cur.z > 0) !== (p.z > 0)) push({ x: TCX + 5.9, z: -2.0 }, f); }
+        else { if (Math.abs(cur.z + 3.2) > 0.35) push({ x: cur.x, z: -3.2 }, f); if (Math.abs(p.z + 3.2) > 0.35) push({ x: p.x, z: -3.2 }, f); }
+        push(p, f);
       }
+      cur = { x: p.x, z: p.z, floor: f };
+      atStart = false;
     }
-
-    if (from.floor === to.floor) {
-      sameFloor(from, to, from.floor);
-    } else if (to.floor > from.floor) {
-      // naik: tiap flight, dari bawah tangga ke pendaratan lantai atas
-      var f = from.floor;
-      toCorridor(from, f);
-      while (f < to.floor) {
-        if (f > 0) { // di lantai atas, datangi bawah tangga lewat kiri lubang (x=-9.4)
-          push({ x: -9.4, z: -3.2 }, f);
-          push({ x: -9.4, z: -6.1 }, f);
-        }
-        stairUp(f).forEach(function (s) { push(s); });
-        push(landPoint(f + 1), f + 1);
-        f++;
+    if (cur.floor === to.floor && Math.hypot(cur.x - to.x, cur.z - to.z) < 0.15) return [];
+    if (cur.floor === to.floor) { walkTo(to, to.floor); return pts; }
+    var dir = to.floor > cur.floor ? 1 : -1;
+    var guard = 0;
+    while (cur.floor !== to.floor && guard++ < 8) {
+      var nf = cur.floor + dir, lo = Math.min(cur.floor, nf);
+      var useB = lo >= 1 && (inCylPt(to) || inCylPt(cur));
+      if (dir > 0) {
+        if (useB) { walkTo(B_ENTRY, cur.floor); stairBUp(lo).forEach(function (w) { push(w); }); cur = { x: B_EXIT.x, z: B_EXIT.z, floor: nf }; }
+        else { walkTo(A_ENTRY, cur.floor); stairUp(lo).forEach(function (w) { push(w); }); push(landPoint(nf), nf); cur = { x: A_EXIT.x, z: A_EXIT.z, floor: nf }; }
+      } else {
+        if (useB) { walkTo(B_EXIT, cur.floor); stairBDown(lo).forEach(function (w) { push(w); }); cur = { x: B_ENTRY.x, z: B_ENTRY.z, floor: nf }; }
+        else { walkTo(A_TOP, cur.floor); stairDown(lo).forEach(function (w) { push(w); }); cur = { x: A_ENTRY.x, z: A_ENTRY.z, floor: nf }; }
       }
-      enterFloor(to, to.floor);
-    } else {
-      // turun: tiap flight, dari pendaratan ke bawah tangga
-      var f = from.floor;
-      while (f > to.floor) {
-        toCorridor(from, f);
-        push(landPoint(f), f);
-        push({ x: 0.2, z: -6.1 }, f);
-        stairDown(f - 1).forEach(function (s) { push(s); });
-        f--;
-        from = { x: -9.4, z: -6.1, floor: f }; // tiba di bawah tangga lantai f
-      }
-      enterFloor(to, to.floor);
+      atStart = false;
     }
+    walkTo(to, to.floor);
     return pts;
   }
-
-  function sendTo(a, spot, status, facePoint) {
+  function sendTo(a, spot, status, facePoint, seatFlag) {
     a.path = route(a, spot);
     a.lastSpot = spot;
     a.status = status;
     a.facePoint = facePoint || null;
+    a.wantSeat = !!seatFlag;
   }
   function sendToSeat(a, status) {
-    sendTo(a, a.seatSpot, status, null);
+    sendTo(a, a.seatSpot, status, null, true);
   }
 
   /* ── Titik aktivitas ────────────────────────────────────────────── */
   // papan & server di ruangan divisi sumber (pipeline.source); titik serah
   // terima dihitung dari kursi lead tiap divisi target (lead.seat + (1.15, 0.55)).
   var srcRoom = roomOfDivision(CONFIG.pipeline.source) || roomsByFloor[0][0];
-  var SPOTS = {
+  var SPOTS = (srcRoom.kind === 'cyl') ? {
+    board: { x: TCX + 1.9, z: -3.3, floor: srcRoom.floor },
+    server: { x: TCX - 3.4, z: 0.2, floor: srcRoom.floor }
+  } : {
     board: { x: srcRoom.cx - 0.2, z: -3.15, floor: srcRoom.floor, via: [{ x: srcRoom.x0 + 4.1, z: 1.15 }, { x: srcRoom.cx - 3.2, z: -3.15 }] },
     server: { x: srcRoom.x0 + 1.95, z: -1.8, floor: srcRoom.floor, via: [{ x: srcRoom.x0 + 4.1, z: 1.15 }, { x: srcRoom.x0 + 4.1, z: -1.8 }] }
   };
@@ -1484,6 +1793,14 @@ document.getElementById("stage").setAttribute("aria-label", "Kantor virtual 3D "
       spot: { x: lead.seat.x + 1.15, z: lead.seat.z + 0.55, floor: lead.seat.floor }
     });
   });
+  // staff di luar koreografi (bukan COO / lead sumber / kurir / lead target)
+  // = pekerja paralel: statusnya berputar mengikuti workflow divisinya.
+  var choreoIds = {};
+  if (cooAgent) choreoIds[cooAgent.id] = true;
+  if (srcLead) choreoIds[srcLead.id] = true;
+  courierJobs.forEach(function (c) { choreoIds[c.a.id] = true; if (c.lead) choreoIds[c.lead.id] = true; });
+  agents.forEach(function (a) { a.staffIdle = !choreoIds[a.id] && a.divIndex >= 0; });
+
   function leadTaskText(divIndex, kind) {
     // Teks status lead: dari `workflow` divisi bila ada (langkah ke-1 untuk
     // idle, ke-2 untuk work, diawali "Terima data — " saat menerima);
@@ -1514,7 +1831,7 @@ document.getElementById("stage").setAttribute("aria-label", "Kantor virtual 3D "
       });
     } else if (p === 1) {
       sendTo(coo, SPOTS.board, 'Tinjau pipeline di papan', { x: SPOTS.board.x, z: -4.2 });
-      sendTo(leadR, SPOTS.server, 'Cek server', { x: srcRoom.x0 + 0.8, z: -1.8 });
+      sendTo(leadR, SPOTS.server, 'Cek server', { x: SPOTS.server.x - 1.2, z: SPOTS.server.z });
       courierJobs.forEach(function (c) {
         c.a.carrying = true;
         sendTo(c.a, c.spot, 'Antar data ↑ ke ' + c.div, { x: c.lead.seat.x, z: c.lead.seat.z });
@@ -1545,6 +1862,12 @@ document.getElementById("stage").setAttribute("aria-label", "Kantor virtual 3D "
 
   /* ── Gerak agent ────────────────────────────────────────────────── */
   var SPEED = REDUCED ? 60 : 2.7;
+  function staffStatusText(a) {
+    var d = CONFIG.divisions[a.divIndex];
+    if (d && d.workflow && d.workflow.length) return d.workflow[a.wfIdx % d.workflow.length];
+    if (d) return 'Bekerja - ' + d.short;
+    return 'Bekerja di meja';
+  }
   function updateAgent(a, dt) {
     var P = a.parts;
     a.moving = false;
@@ -1572,17 +1895,46 @@ document.getElementById("stage").setAttribute("aria-label", "Kantor virtual 3D "
       var diff = ((want - a.mesh.rotation.y + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
       a.mesh.rotation.y += diff * Math.min(1, dt * 6);
     }
+    // pose DUDUK: agent diam di titik duduknya (kursi meja / meja cadangan / standby)
+    a.sitting = !a.moving && a.wantSeat && !a.path.length;
     var swing = a.moving && !REDUCED ? Math.sin(a.walkPhase) * 0.55 : 0;
-    P.legL.rotation.x = swing;
-    P.legR.rotation.x = -swing;
+    var k = Math.min(1, dt * 9);
+    function ease(cur, target) { return cur + (target - cur) * k; }
+    if (a.sitting) {
+      P.legL.rotation.x = ease(P.legL.rotation.x, -1.42);   // paha horizontal ke depan
+      P.legR.rotation.x = ease(P.legR.rotation.x, -1.42);
+      P.shinL.rotation.x = ease(P.shinL.rotation.x, 1.42);  // betis vertikal turun ke lantai
+      P.shinR.rotation.x = ease(P.shinR.rotation.x, 1.42);
+    } else {
+      P.legL.rotation.x = swing;
+      P.legR.rotation.x = -swing;
+      P.shinL.rotation.x = ease(P.shinL.rotation.x, 0);
+      P.shinR.rotation.x = ease(P.shinR.rotation.x, 0);
+    }
     if (a.carrying) {
       P.armL.rotation.x = -1.05; P.armR.rotation.x = -1.05;
+    } else if (a.sitting) {
+      // lengan ke depan (keyboard) + gerak mengetik halus
+      var ty = REDUCED ? 0 : Math.sin(clockT * 7 + a.walkPhase) * 0.06;
+      P.armL.rotation.x = ease(P.armL.rotation.x, -0.92 + ty);
+      P.armR.rotation.x = ease(P.armR.rotation.x, -0.92 - ty);
     } else {
       P.armL.rotation.x = -swing * 0.7;
       P.armR.rotation.x = swing * 0.7;
     }
     P.pack.visible = a.carrying;
-    P.inner.position.y = a.moving && !REDUCED ? Math.abs(Math.sin(a.walkPhase)) * 0.045 : 0;
+    var targetInnerY = a.sitting ? -0.36 : (a.moving && !REDUCED ? Math.abs(Math.sin(a.walkPhase)) * 0.045 : 0);
+    P.inner.position.y = ease(P.inner.position.y, targetInnerY);
+    // kerja PARALEL: staff di luar koreografi berputar status workflow
+    // divisinya sendiri-sendiri, jadi semua divisi tampak aktif bersamaan
+    if (a.staffIdle && a.sitting) {
+      a.idleTimer += dt;
+      if (a.idleTimer > 8) {
+        a.idleTimer = 0;
+        a.wfIdx++;
+        a.status = staffStatusText(a);
+      }
+    }
   }
 
   /* ── Navigasi kamera: preset ruangan + tween halus ─────────────── */
@@ -1595,7 +1947,9 @@ document.getElementById("stage").setAttribute("aria-label", "Kantor virtual 3D "
     rooms.forEach(function (r) {
       var key = r.div ? ('div-' + r.divIndex) : 'lounge';
       var y = fl * FH;
-      VIEWS[key] = {
+      VIEWS[key] = (r.kind === 'cyl') ? {
+        pos: [TCX + 7.5, y + 4.2, 12.5], tgt: [TCX - 0.2, y + 0.4, -0.5]
+      } : {
         pos: [r.cx + (r.cx < 0 ? -0.8 : 0.5), y + 3.7, 10.5],
         tgt: [r.cx + (r.cx < 0 ? -1.5 : 0.2), y + 0.4, r.div ? -0.3 : 0.6]
       };
@@ -1889,16 +2243,17 @@ document.getElementById("stage").setAttribute("aria-label", "Kantor virtual 3D "
     startSynth: function () {
       if (!AC) return;
       if (this.timer) clearInterval(this.timer);
-      if (!this.ctx) { try { this.init(); } catch (e) { return; } }
+      this.unlock();
+      if (!this.ctx) return;
       var ctx = this.ctx;
-      ctx.resume();
+      if (ctx.state === 'suspended' && ctx.resume) { try { ctx.resume(); } catch (e) {} }
       this.playing = true;
       this.audioMode = false;
       this.nextTime = ctx.currentTime + 0.1;
       this.chordIdx = 0;
       this.master.gain.cancelScheduledValues(ctx.currentTime);
       this.master.gain.setValueAtTime(this.master.gain.value, ctx.currentTime);
-      this.master.gain.linearRampToValueAtTime(0.85, ctx.currentTime + 0.6);
+      this.master.gain.linearRampToValueAtTime(0.9, ctx.currentTime + 0.6);
       var self = this;
       this.timer = setInterval(function () { self.schedule(); }, 160);
       musicBtn.classList.add('on');
@@ -1924,8 +2279,26 @@ document.getElementById("stage").setAttribute("aria-label", "Kantor virtual 3D "
       musicBtn.setAttribute('aria-pressed', 'false');
       musicLabel.textContent = 'Musik kantor';
     },
+    // Buka kunci audio DI DALAM handler klik/tap (kebijakan autoplay HP):
+    // AudioContext dibuat/di-resume sinkron dari gestur pengguna, plus
+    // buffer hening sesaat yang diputar ke destination agar jalur
+    // keluaran benar-benar terbuka sebelum musik mulai.
+    unlock: function () {
+      if (!AC) return;
+      if (!this.ctx) { try { this.init(); } catch (e) { return; } }
+      var ctx = this.ctx;
+      if (ctx.state === 'suspended' && ctx.resume) { try { ctx.resume(); } catch (e) {} }
+      try {
+        var b = ctx.createBuffer(1, 1, ctx.sampleRate);
+        var srcNode = ctx.createBufferSource();
+        srcNode.buffer = b;
+        srcNode.connect(ctx.destination);
+        srcNode.start(0);
+      } catch (e) {}
+    },
     toggle: function () {
       if (this.playing) { this.stop(); return; }
+      this.unlock(); // gestur klik ini yang membuka kunci audio di HP
       var src = CONFIG.music && CONFIG.music.src;
       if (src && !this.audioFailed) { this.startAudio(); return; }
       this.startSynth();
@@ -1934,6 +2307,7 @@ document.getElementById("stage").setAttribute("aria-label", "Kantor virtual 3D "
   if (CONFIG.music && CONFIG.music.credit) musicBtn.title = CONFIG.music.credit;
   function toggleMusic() { Music.toggle(); }
   musicBtn.addEventListener('click', toggleMusic);
+  window.__kantorMusic = Music; // handle uji: status putar & konteks audio
   boombox.userData.isBoombox = true;
 
   /* ── Resize & loop utama ────────────────────────────────────────── */
@@ -1947,6 +2321,7 @@ document.getElementById("stage").setAttribute("aria-label", "Kantor virtual 3D "
   resize();
 
   var clock = new THREE.Clock();
+  var clockT = 0;
   var projV = new THREE.Vector3();
   var liveStatusEl = null;
 
@@ -1954,6 +2329,7 @@ document.getElementById("stage").setAttribute("aria-label", "Kantor virtual 3D "
     requestAnimationFrame(frame);
     var dt = Math.min(clock.getDelta(), 0.05);
     var t = clock.elapsedTime;
+    clockT = t;
 
     // tween kamera
     if (camAnim) {
@@ -1991,6 +2367,7 @@ document.getElementById("stage").setAttribute("aria-label", "Kantor virtual 3D "
     controls.target.z = Math.max(-10, Math.min(10, controls.target.z));
 
     agents.forEach(function (a) { updateAgent(a, dt); });
+    updateReserves(dt);
 
     // LED server berkedip
     for (var bi = 0; bi < blinkers.length; bi++) {
@@ -2023,6 +2400,7 @@ document.getElementById("stage").setAttribute("aria-label", "Kantor virtual 3D "
         a.lastStatus = a.status;
         a.bubbleText.textContent = a.status;
       }
+      if (bubblesHidden) { a.bubbleEl.style.display = 'none'; return; }
       if (povAgent && a.id === povAgent.id) { a.bubbleEl.style.display = 'none'; return; }
       projV.copy(a.pos);
       projV.y += 2.18;
@@ -2045,6 +2423,9 @@ document.getElementById("stage").setAttribute("aria-label", "Kantor virtual 3D "
   // handle debug (untuk pengujian otomatis): hitung agen, ruangan, kursi
   window.__kantor3d = {
     floors: NFLOORS,
+    shape: 'persegi+silinder',
+    stairs: 'A-badan-kotak + B-menara-silinder (tidak sejajar)',
+    reserves: reserveAgents.length,
     views: Object.keys(VIEWS),
     agents: agents.map(function (a) { return { id: a.id, name: a.name, divIndex: a.divIndex, seat: { x: +a.seat.x.toFixed(2), z: +a.seat.z.toFixed(2), floor: a.seat.floor } }; }),
     rooms: roomsByFloor.map(function (rooms, fl) {

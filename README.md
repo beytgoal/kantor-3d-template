@@ -1,8 +1,14 @@
 # Kantor 3D — Template
 
-Kantor virtual 3D bergaya sinematik: ruangan per divisi, agen
-3D yang beraktivitas, chat bubble, orbit/pan/zoom, tombol lompat ruangan,
-mode POV, dan musik latar. Dibangun dengan Three.js.
+Kantor virtual 3D bergaya sinematik: gedung gabungan **persegi +
+silinder** (badan kotak menyatu dengan menara silinder, bawaan 3 lantai)
+dengan dua tangga yang **tidak sejajar** — satu di badan kotak, satu di
+menara. Agen 3D **duduk di kursi meja kerja** dan bekerja **paralel**
+di divisinya masing-masing; **agen cadangan** standby di area bersama
+dan berpindah membantu divisi yang sibuk. Dilengkapi chat bubble
+(dengan satu tombol master sembunyi/tampil "Bubble & Ruangan"),
+orbit/pan/zoom, tombol lompat ruangan, mode POV, dan musik latar.
+Gedung tanpa tiang/kolom/pilar sama sekali. Dibangun dengan Three.js.
 
 > **Baru pertama kali? Baca [PANDUAN.md](PANDUAN.md)** — panduan
 > pasca-instalasi: inisiasi setup oleh Muse, tambah divisi/agen,
@@ -20,10 +26,10 @@ semuanya diatur lewat `CONFIG.visual`: pilih tema bawaan (`"malam"`,
 `"siang"`, `"senja"`) atau timpa per field (mis. `sky`, `palette.wall`,
 `lights.ambient`). Tema bisa diganti kapan saja tanpa menyentuh kode.
 
-**Tanpa edit kode** — jumlah divisi, agen, dan lantai semuanya diatur
-lewat blok CONFIG (atau lewat `install.py`). Tambah divisi, agen, atau
-lantai tinggal tambah entri di CONFIG; ruangan, meja, kursi, tangga,
-dan tombol lompat dibangun otomatis.
+**Tanpa edit kode** — jumlah divisi, agen, lantai, dan agen cadangan
+semuanya diatur lewat blok CONFIG (atau lewat `install.py`). Tambah
+divisi, agen, atau lantai tinggal tambah entri di CONFIG; ruangan,
+meja, kursi, kedua tangga, dan tombol lompat dibangun otomatis.
 
 ## Install sekali perintah
 
@@ -36,7 +42,12 @@ atau `python3 install.py` untuk install interaktif.
 2. Cari blok `★ KANTOR 3D — CONFIG ★` di bagian atas `<script>`.
 3. Ganti nilainya dengan identitas perusahaanmu:
    - `company`, `companyUpper`, `domain`, `appUrl`
-   - `floors`: jumlah lantai gedung (default 2)
+   - `floors`: jumlah lantai gedung (default 3)
+   - `reserves`: jumlah agen cadangan standby (default 2; `0` = tanpa
+     cadangan). Agen cadangan menunggu di Area Standby (lounge lantai 1),
+     lalu otomatis berjalan membantu divisi secara bergiliran dan duduk
+     di meja cadangan divisi itu. Tiap ruangan divisi selalu punya satu
+     meja ekstra di luar jumlah agen tetap sebagai meja cadangan.
    - `divisions[]`: `short`, `full`, `room`, `floor` (1-index, lantai
      ruangan), `color`/`css`/`cssDark`, `url`, `screen`, `board`,
      `boardDesc`, `roomDesc`, plus `industry`, `feature`
@@ -133,18 +144,30 @@ berubah. Tidak ada nilai visual yang terkunci di kode.
 - Musik latar: trek no-copyright **"Chill Lofi" oleh ZephiraMusic**
   (lisensi Pixabay — gratis, boleh dipakai komersial, tanpa atribusi
   wajib), diputar dari `CONFIG.music.src` saat tombol Musik kantor /
-  boombox diklik. Ganti `src` dengan URL MP3 no-copyright lain, atau
+  boombox diklik. Audio memang selalu dimulai dari ketukan pengguna
+  (kebijakan autoplay browser, terutama di HP): konteks audio dibuka
+  dan di-unlock di dalam handler klik tombol musik yang besar dan
+  jelas, jadi musik langsung berbunyi dari speaker HP. Ganti `src` dengan URL MP3 no-copyright lain, atau
   kosongkan untuk memakai synth lo-fi generatif bawaan (tanpa file
   eksternal, tetap jalan offline; dipakai otomatis bila trek gagal
   dimuat).
-- Jumlah bawaan: 3 divisi, 6 agen, 2 lantai — semuanya bisa diubah
-  lewat CONFIG tanpa menyentuh kode lain.
+- Jumlah bawaan: 3 divisi, 6 agen, 2 agen cadangan, 3 lantai —
+  semuanya bisa diubah lewat CONFIG tanpa menyentuh kode lain.
 - Warna divisi: `color` (hex number, mis. `0xf7b955`) untuk objek 3D,
   `css`/`cssDark` (string, mis. `"#f7b955"`) untuk UI teks.
 - Gedung ini open-plan total (tanpa dinding penuh, sesuai desain
-  aslinya); ruangan ditandai karpet, furnitur, dan pembatas rendah.
-- Tangga selalu di belakang-kiri gedung; lantai atas punya bukaan
-  tangga di posisi yang sama di tiap lantai.
+  aslinya) dan **tanpa tiang/kolom/pilar**; ruangan ditandai karpet,
+  furnitur, dan pembatas rendah.
+- Bentuk gedung gabungan persegi + silinder: badan kotak menyatu
+  dengan menara silinder (pusat di sisi timur). Tiap lantai, satu
+  ruangan divisi menempati menara (divisi bertanda `tower: true`,
+  atau divisi terakhir di lantai itu); ruangan lain berbagi badan
+  kotak. Lounge selalu di badan kotak lantai 1.
+- Dua tangga, tidak sejajar: **Tangga A** di belakang-kiri badan kotak
+  (naik ke arah timur, melayani semua lantai) dan **Tangga B** di
+  dalam menara silinder (naik ke arah utara, melayani lantai 2 ke
+  atas). Perjalanan antar lantai otomatis memilih tangga menurut
+  posisi asal/tujuan.
 
 ## Lisensi
 
